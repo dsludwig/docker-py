@@ -247,12 +247,16 @@ class ImageApiMixin(object):
 
     @utils.minimum_version('1.30')
     @utils.check_resource('image')
-    def inspect_distribution(self, image):
+    def inspect_distribution(self, image, auth_config=None):
         """
         Get image digest and platform information by contacting the registry.
 
         Args:
             image (str): The image name to inspect
+            auth_config (dict): Override the credentials that
+                :py:meth:`~docker.api.daemon.DaemonApiMixin.login` has set for
+                this request. ``auth_config`` should contain the ``username``
+                and ``password`` keys to be valid.
 
         Returns:
             (dict): A dict containing distribution data
@@ -261,9 +265,20 @@ class ImageApiMixin(object):
             :py:class:`docker.errors.APIError`
                 If the server returns an error.
         """
+        registry, repo_name = auth.resolve_repository_name(image)
+        headers = {}
+
+        if auth_config is None:
+            header = auth.get_config_header(self, registry)
+            if header:
+                headers['X-Registry-Auth'] = header
+        else:
+            log.debug('Sending supplied auth config')
+            headers['X-Registry-Auth'] = auth.encode_header(auth_config)
 
         return self._result(
-            self._get(self._url("/distribution/{0}/json", image)), True
+            self._get(self._url("/distribution/{0}/json", image),
+                      headers=headers), True
         )
 
     def load_image(self, data, quiet=None):

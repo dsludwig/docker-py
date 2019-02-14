@@ -197,6 +197,20 @@ class ImageTest(BaseAPIClientTest):
 
             assert excinfo.value.args[0] == 'Resource ID was not provided'
 
+    def test_inspect_distribution(self):
+        with mock.patch('docker.auth.resolve_authconfig',
+                        fake_resolve_authconfig):
+            self.client.inspect_distribution(fake_api.FAKE_IMAGE_NAME)
+
+        fake_request.assert_called_with(
+            'GET',
+            url_prefix + 'distribution/test_image/json',
+            headers={'Content-Type': 'application/json'},
+            stream=False,
+            timeout=DEFAULT_TIMEOUT_SECONDS
+        )
+
+
     def test_push_image(self):
         with mock.patch('docker.auth.resolve_authconfig',
                         fake_resolve_authconfig):
